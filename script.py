@@ -7,143 +7,152 @@ workable pandas dataframe
 import logging
 import pandas as pd
 
-from typing import Optional
-
-from constants import (
-	CSV_EXTENSION,
-	CURRENT_YEAR,
-	GZIP_EXTENSION,
-	NFLV_BASE_KEY,
-	NFLV_COMPRESSION_KEY,
-	NFLV_DIR_DICT,
-	NFLV_URL_KEY,
-	NON_SEASONAL_TABLES,
-	NFLV_SUFFIX_DICT,
-	NFLV_TABLE_DEFAULT,
-	SUFFIX_TABLES,
-	URL_STRUCTURE,
-)
+from typing import List, Optional, Tuple
+from ff_projections import constants as c
+from ff_projections.script import *
 
 
-all_tbl_names = list(NFLV_DIR_DICT.keys())
-print(all_tbl_names)
+def build_db() -> None:
+    """Function to loop through seasons/tables and write each to the db if data exists.
+    
+    Parameters
+    ----------
+    None.
+
+    Returns
+    -------
+    None.
+    """
+
+    for table in c.ALL_TABLE_NAMES:
+        if table in c.SEASONAL_TABLES:
+            for season in range(c.NFLV_DIR_DICT[table][c.NLFV_START_SEASON_KEY], c.CURRENT_YEAR+1):
+                if season in c.NFLV_DIR_DICT[table][c.NFLV_SEASON_RANGE_KEY]:
+                    _write_seasonal_table(table=table, season=season)
+                else:
+                    LOGGER.info(c.MISSING_SEASON_MESSAGE.format(season=season, table=table))
+        else:
+            _write_table(table=table)
+
+
+def _construct_table_url(
+    table: str=c.NFLV_TABLE_DEFAULT, 
+    year: int=c.CURRENT_YEAR, 
+    suffix: Optional[str]=None
+) -> Tuple[str, str]:
+    """Helper function to build nflverse url from table information.
+
+    Parameters
+    ----------
+    table : str 
+        Name of repo subdirectory containing relevant data (default: 'pbp').
+    year : int 
+        Year to read data (default: current year).
+    suffix : 
+        Optional string appended to the end of the url corresponding to 
+        stat type (one of 'passing_', 'rushing_', or 'receiving_').
+
+    Returns 
+    -------
+    table_url, compression : Tuple[str, str]
+        Tuple of the url to read NFLV data from and the compression used to store it.
+    """
+    base_url = c.NFLV_DIR_DICT[c.NFLV_BASE_KEY][c.NFLV_URL_KEY]
+    url_addendum = c.NFLV_DIR_DICT[table][c.NFLV_URL_KEY]
+    compression = c.NFLV_DIR_DICT[table][c.NFLV_COMPRESSION_KEY] if c.NFLV_COMPRESSION_KEY in c.NFLV_DIR_DICT[table].keys() else None
+    extension = c.GZIP_EXTENSION if compression else c.CSV_EXTENSION
+    url_suffix = suffix if table in c.SUFFIX_TABLES else ""
+    url_year = str(year) if table not in c.NON_SEASONAL_TABLES else ""
+    table_url = c.URL_STRUCTURE.format(
+        base_url=base_url, 
+        url_addendum=url_addendum, 
+        year=year, 
+        url_suffix=url_suffix, 
+        extension=extension
+    )
+    return table_url, compression
+
+
+def _read_nflverse_data_year(
+    table: str=c.NFLV_TABLE_DEFAULT, 
+    year: int=c.CURRENT_YEAR, 
+    stat_type: Optional[str]=None
+) -> pd.DataFrame:
+    """Helper function to read any table from nflverse repo.
+
+    Parameters
+    ----------
+    table : str
+        Name of repo subdirectory containing relevant data (default: 'pbp').
+    year : int
+        Year to read data (default: current year).
+    stat_type : Optional[str]
+        Optional string indicating stat type.
+    
+    Returns
+    -------
+    data : pd.DataFrame
+        Pandas DataFrame of nflverse data.
+    """
+    suffix = c.NFLV_SUFFIX_DICT[table].format(stat_type=stat_type) if table in c.NFLV_SUFFIX_DICT.keys() else ""
+    table_url, compression = _construct_table_url(table=table, suffix=suffix, year=year)
+    data = pd.read_csv(table_url, compression=compression, low_memory=False)
+    return data
+
+
+def _return_column_names(table_name: str) -> List[str]:
+    """Helper function to return column names for each table.
+
+    Parameters
+    ----------
+    table_name : str
+        Name of table to write to the database. Options available
+        in ff_projections.constants.NFLV_TABLE_DICT.keys().
+
+    Returns
+    -------
+    column_list : List[str]
+        List of columns for writing to the NFLVerse database.
+    """
+    if table_name == "pbp_player":
+        column_list = [
+            pbp_column for pbp_column in pbp_data.columns 
+            if any(colname_substring in pbp_column
+            for colname_substring in c.PLAYER_COLS)
+        ]
+    elif table_name not in c.NFLV_TABLE_DICT.keys():
+        raise KeyError(c.MISSING_TABLE_MESSAGE)
+    else:
+        column_list = c.NFLV_TABLE_DICT[table_name]
+    return column_list
+
+
+def _build_table(nflv_data: pd.DataFrame, table_name: str) -> pd.DataFrame:
+    """Helper function to extract table-specific information from pbp data.
+
+    Parameters
+    ----------
+    nflv_data : pd.DataFrame
+        NFLVerse data for database upload.
+    table_name : 
+        Name of table to write to the database. Options available
+        in ff_projections.constants.NFLV_TABLE_DICT.keys().
+
+    Returns
+    -------
+    filtered_data : pd.DataFrame 
+        Re-indexed pandas DataFrame with only the relevant columns available and 
+        duplicate rows removed. Ready to be written to the database.
+    """
+    column_list = _return_column_names(table_name=table_name)
+    filtered_data = nflv_data.filter(column_list, axis=1).drop_duplicates().reset_index(drop=True)
+    return filtered_data
+
+
+
 
 table = "weekly_rosters"
 year = 2021
 stat_type = None
+all_tbl_names = list(c.NFLV_DIR_DICT.keys())
 data = _read_nflverse_data_year(table=table, year=year, stat_type=stat_type)
-
-
-def build_db() -> None:
-	"""Function to loop through seasons/tables and write each to the db if data exists"""
-	all_table_names = [key for key in NFLV_DIR_DICT.keys() if key != NFLV_BASE_KEY]
-	for season in range(NFLV_DIR_DICT[NFLV_BASE_KEY][NLFV_START_SEASON_KEY], CURRENT_YEAR+1):
-		for table in all_table_names:
-			if season in NFLV_DIR_DICT[table][NFLV_SEASON_RANGE_KEY]:
-				_write_table(table=table, season=season)
-			else:
-				pass
-
-
-def _construct_table_url(table: str=NFLV_TABLE_DEFAULT, year: int=CURRENT_YEAR, suffix: Optional[str]=None) -> str:
-	"""
-	Helper function to build nflverse url from table information
-
-	:param table: name of repo subdirectory containing relevant data (default: 'pbp')
-	:param year: year to read data (default: current year)
-	:param suffix: optional string appended to the end of the url corresponding to 
-		stat type (one of 'passing_', 'rushing_', or 'receiving_')
-	:param extension: 
-	"""
-	base_url = NFLV_DIR_DICT[NFLV_BASE_KEY][NFLV_URL_KEY]
-	url_addendum = NFLV_DIR_DICT[table][NFLV_URL_KEY]
-	compression = NFLV_DIR_DICT[table][NFLV_COMPRESSION_KEY] if NFLV_COMPRESSION_KEY in NFLV_DIR_DICT[table].keys() else None
-	extension = GZIP_EXTENSION if compression else CSV_EXTENSION
-	url_suffix = suffix if table in SUFFIX_TABLES else ""
-	url_year = str(year) if table not in NON_SEASONAL_TABLES else ""
-	table_url = URL_STRUCTURE.format(
-		base_url=base_url, 
-		url_addendum=url_addendum, 
-		year=year, 
-		url_suffix=url_suffix, 
-		extension=extension
-	)
-	return table_url, compression
-
-
-def _read_nflverse_data_year(
-	table: str=NFLV_TABLE_DEFAULT, 
-	year: int=CURRENT_YEAR, 
-	stat_type: Optional[str]=None
-) -> pd.DataFrame:
-	"""
-	Helper function to read any table from nflverse repo
-
-	:param table: name of repo subdirectory containing relevant data (default: 'pbp')
-	:param year: year to read data (default: current year)
-	:param stat_type: optional string indicating stat type
-	:return: pandas dataframe of nflverse data
-	"""
-	suffix = NFLV_SUFFIX_DICT[table].format(stat_type=stat_type) if table in NFLV_SUFFIX_DICT.keys() else ""
-	table_url, compression = _construct_table_url(table=table, suffix=suffix, year=year)
-	data = pd.read_csv(table_url, compression=compression, low_memory=False)
-	return data
-
-
-def _build_drive_table(pbp_data: pd.DataFrame) -> pd.DataFrame:
-	"""
-	Helper function to extract drive information from pbp data
-
-	:param pbp_data: play-by-play data for extracting drive info
-	:return: dataframe with drive info 
-	"""
-	drive_data = pbp_data.filter(DRIVE_TBL_COLUMNS, axis=1).drop_duplicates().reset_index(drop=True)
-	return drive_data
-
-
-def _build_games_table(pbp_data: pd.DataFrame) -> pd.DataFrame:
-	"""
-	Helper function to extract game information from pbp data
-
-	:param pbp_data: play-by-play data for extracting game info
-	:return: dataframe with game info 
-	"""
-	game_data = pbp_data.filter(GAME_TBL_COLUMNS, axis=1).drop_duplicates().reset_index(drop=True)
-	return game_data
-
-
-def _build_pbp_table(pbp_data: pd.DataFrame) -> pd.DataFrame:
-	"""
-	Helper function to subset pbp data to relevant columns
-
-	:param pbp_data: play-by-play data for extracting game info
-	:return: dataframe with pbp info to write to sqlite 
-	"""
-	pbp_data = pbp_data.filter(PBP_TBL_COLUMNS, axis=1)
-	return pbp_data
-
-
-def _build_pbp_player_table(pbp_data: pd.DataFrame) -> pd.DataFrame:
-	"""
-	Helper function to extract play-level player involvement information from pbp data
-
-	:param pbp_data: play-by-play data for extracting player involvement info
-	:return: dataframe with pbp player info 
-	"""
-	player_id_columns = [
-		pbp_column for pbp_column in pbp_data.columns 
-		if any(colname_substring in pbp_column for colname_substring in PLAYER_COLS)
-	]
-	pbp_player_data = pbp_data.filter(player_id_columns, axis=1)
-	return pbp_player_data
-
-
-def _build_pbp_probabilities_table(pbp_data: pd.DataFrame) -> pd.DataFrame:
-	"""
-	Helper function to extract outcome probability information from pbp data
-
-	:param pbp_data: play-by-play data for extracting outcome probability info
-	:return: dataframe with outcome probability info 
-	"""
-	pbp_probability_data = pbp_data.filter(PBP_PROBABILITIES_TBL_COLUMNS, axis=1)
-	return pbp_probability_data
