@@ -65,9 +65,9 @@ MISSING_TABLE_MESSAGE = """NFLV table name not found in column name dictionary.
     for available options.
     """
 
-MISSING_SEASON_MESSAGE = """Season {season} data not available for table {table}.
-    Skipping season...
-    """
+MISSING_SEASON_MESSAGE = (
+    """Season %i data not available for table %s. Skipping season..."""
+)
 
 
 #####################
@@ -84,14 +84,13 @@ NFLV_TABLE_DEFAULT = "pbp"
 NFLV_TABLE_NGS = "nextgen_stats"
 NFLV_TABLE_PFR = "pfr_advstats"
 
-NFLV_SUFFIX_DICT = {
-	NFLV_TABLE_NGS: "_{stat_type}",
-	NFLV_TABLE_PFR: "{stat_type}_"
-}
+NFLV_SUFFIX_DICT = {NFLV_TABLE_NGS: "_{stat_type}", NFLV_TABLE_PFR: "{stat_type}_"}
 
 NON_SEASONAL_TABLES = ["combine", "contracts", "draft_picks", "officials", "players"]
 ALL_TABLE_NAMES = [key for key in NFLV_DIR_DICT.keys() if key != NFLV_BASE_KEY]
-SEASONAL_TABLES = [key for key in NFLV_DIR_DICT.keys() if key not in NON_SEASONAL_TABLES]
+SEASONAL_TABLES = [
+    key for key in NFLV_DIR_DICT.keys() if key not in NON_SEASONAL_TABLES
+]
 
 SUFFIX_TABLES = ["pfr_advstats"]
 URL_STRUCTURE = "{base_url}{url_addendum}{year}{url_suffix}{extension}"
@@ -100,25 +99,49 @@ NFLV_DIR_DICT = {
     "base": {"url": NFLV_BASE_URL, "start_season": NFLV_BASE_START_SEASON},
     "combine": {"url": NFLV_COMBINE_URL_ADDENDUM},
     "contracts": {"url": NFLV_CONTRACTS_URL_ADDENDUM, "compression": "gzip"},
-    "depth_charts": {"url": NFLV_DEPTH_CHARTS_URL_ADDENDUM, "season_range": range(NFLV_DEPTH_CHARTS_START_SEASON, CURRENT_YEAR+1)},
+    "depth_charts": {
+        "url": NFLV_DEPTH_CHARTS_URL_ADDENDUM,
+        "season_range": range(NFLV_DEPTH_CHARTS_START_SEASON, CURRENT_YEAR + 1),
+    },
     "draft_picks": {"url": NFLV_DRAFT_PICKS_URL_ADDENDUM},
-    "nextgen_stats": {"url": NFLV_NGS_URL_ADDENDUM, "season_range": range(NFLV_NGS_START_SEASON, CURRENT_YEAR+1), "compression": "gzip"},
-    "pbp": {"url": NFLV_PBP_URL_ADDENDUM, "season_range": range(NFLV_PBP_START_SEASON, CURRENT_YEAR+1), "compression": "gzip"},
-    "pbp_participation": {"url": NFLV_PBP_PARTICIPATION_URL_ADDENDUM, "season_range": range(NFLV_PBP_PARTICIPATION_START_SEASON, CURRENT_YEAR+1)},
-    "pfr_advstats": {"url": NFLV_PFR_URL_ADDENDUM, "season_range": range(NFLV_PFR_START_SEASON, CURRENT_YEAR+1)},
-    "player_stats": {"url": NFLV_PLAYER_STATS_URL_ADDENDUM, "season_range": range(NFLV_PLAYER_STATS_START_SEASON, CURRENT_YEAR+1), "compression": "gzip"},
-    "snap_counts": {"url": NFLV_SNAP_COUNT_URL_ADDENDUM, "season_range": range(NFLV_SNAP_COUNT_START_SEASON, CURRENT_YEAR+1)},
-    "weekly_rosters": {"url": NFLV_WEEKLY_ROSTER_URL_ADDENDUM, "season_range": range(NFLV_WEEKLY_ROSTER_START_SEASON, CURRENT_YEAR+1)},
+    "nextgen_stats": {
+        "url": NFLV_NGS_URL_ADDENDUM,
+        "season_range": range(NFLV_NGS_START_SEASON, CURRENT_YEAR + 1),
+        "compression": "gzip",
+    },
+    "pbp": {
+        "url": NFLV_PBP_URL_ADDENDUM,
+        "season_range": range(NFLV_PBP_START_SEASON, CURRENT_YEAR + 1),
+        "compression": "gzip",
+    },
+    "pbp_participation": {
+        "url": NFLV_PBP_PARTICIPATION_URL_ADDENDUM,
+        "season_range": range(NFLV_PBP_PARTICIPATION_START_SEASON, CURRENT_YEAR + 1),
+    },
+    "pfr_advstats": {
+        "url": NFLV_PFR_URL_ADDENDUM,
+        "season_range": range(NFLV_PFR_START_SEASON, CURRENT_YEAR + 1),
+    },
+    "player_stats": {
+        "url": NFLV_PLAYER_STATS_URL_ADDENDUM,
+        "season_range": range(NFLV_PLAYER_STATS_START_SEASON, CURRENT_YEAR + 1),
+        "compression": "gzip",
+    },
+    "snap_counts": {
+        "url": NFLV_SNAP_COUNT_URL_ADDENDUM,
+        "season_range": range(NFLV_SNAP_COUNT_START_SEASON, CURRENT_YEAR + 1),
+    },
+    "weekly_rosters": {
+        "url": NFLV_WEEKLY_ROSTER_URL_ADDENDUM,
+        "season_range": range(NFLV_WEEKLY_ROSTER_START_SEASON, CURRENT_YEAR + 1),
+    },
 }
 
 ##################
 # renaming dicts #
 ##################
 
-PBP_RENAME_DICT = {
-    "time": "play_time",
-    "desc": "play_desc"
-}
+PBP_RENAME_DICT = {"time": "play_time", "desc": "play_desc"}
 
 ##################
 # subset columns #
@@ -218,10 +241,10 @@ GAME_TBL_COLUMNS = [
 
 
 DRAFT_PICKS_TBL_COLUMNS = [
-    "season", 
+    "season",
     "round",
     "pick",
-    "team", 
+    "team",
     "gsis_id",
     "pfr_player_id",
     "cfb_player_id",
@@ -284,7 +307,7 @@ DRIVE_TBL_COLUMNS = [
 NGS_PASSING_TBL_COLUMNS = [
     "season",
     "season_type",
-    "week" ,
+    "week",
     "player_display_name",
     "player_position",
     "team_abbr",
@@ -463,22 +486,22 @@ PBP_TBL_COLUMNS = [
     "qb_hit",
     "rush_attempt",
     "pass_attempt",
-    "sack", 
-    "touchdown", 
+    "sack",
+    "touchdown",
     "pass_touchdown",
     "rush_touchdown",
     "return_touchdown",
     "extra_point_attempt",
     "two_point_attempt",
     "field_goal_attempt",
-    "kickoff_attempt", 
-    "punt_attempt", 
-    "fumble", 
+    "kickoff_attempt",
+    "punt_attempt",
+    "fumble",
     "complete_pass",
-    "assist_tackle", 
-    "lateral_reception", 
+    "assist_tackle",
+    "lateral_reception",
     "lateral_receiving_yards",
-    "lateral_rush", 
+    "lateral_rush",
     "lateral_return",
     "lateral_recovery",
     "passing_yards",
@@ -486,9 +509,9 @@ PBP_TBL_COLUMNS = [
     "rushing_yards",
     "tackle_with_assist",
     "return_team",
-    "return_yards", 
+    "return_yards",
     "penalty_team",
-    "replay_or_challenge_result", 
+    "replay_or_challenge_result",
     "penalty_type",
     "defensive_two_point_attempt",
     "defensive_two_point_conv",
@@ -546,35 +569,35 @@ PBP_PLAYER_TBL_COLUMNS = [
     "solo_tackle_1_team",
     "solo_tackle_2_team",
     "solo_tackle_1_player_id",
-    "solo_tackle_2_player_id", 
-    "assist_tackle_1_player_id", 
-    "assist_tackle_1_team", 
-    "assist_tackle_2_player_id", 
-    "assist_tackle_2_team", 
-    "assist_tackle_3_player_id", 
-    "assist_tackle_3_team", 
-    "assist_tackle_4_player_id", 
-    "assist_tackle_4_team",  
-    "tackle_with_assist_1_player_id", 
-    "tackle_with_assist_1_team", 
-    "tackle_with_assist_2_player_id",  
+    "solo_tackle_2_player_id",
+    "assist_tackle_1_player_id",
+    "assist_tackle_1_team",
+    "assist_tackle_2_player_id",
+    "assist_tackle_2_team",
+    "assist_tackle_3_player_id",
+    "assist_tackle_3_team",
+    "assist_tackle_4_player_id",
+    "assist_tackle_4_team",
+    "tackle_with_assist_1_player_id",
+    "tackle_with_assist_1_team",
+    "tackle_with_assist_2_player_id",
     "tackle_with_assist_2_team",
-    "pass_defense_1_player_id", 
-    "pass_defense_2_player_id",  
+    "pass_defense_1_player_id",
+    "pass_defense_2_player_id",
     "fumbled_1_team",
-    "fumbled_1_player_id",  
-    "fumbled_2_player_id", 
-    "fumbled_2_team", 
+    "fumbled_1_player_id",
+    "fumbled_2_player_id",
+    "fumbled_2_team",
     "fumble_recovery_1_team",
-    "fumble_recovery_1_yards", 
-    "fumble_recovery_1_player_id", 
+    "fumble_recovery_1_yards",
+    "fumble_recovery_1_player_id",
     "fumble_recovery_2_team",
-    "fumble_recovery_2_yards", 
-    "fumble_recovery_2_player_id", 
-    "sack_player_id", 
-    "half_sack_1_player_id",  
-    "half_sack_2_player_id", 
-    "penalty_player_id", 
+    "fumble_recovery_2_yards",
+    "fumble_recovery_2_player_id",
+    "sack_player_id",
+    "half_sack_1_player_id",
+    "half_sack_2_player_id",
+    "penalty_player_id",
 ]
 
 
@@ -682,28 +705,28 @@ PFR_DEFENSE_TBL_COLUMNS = [
 
 
 PFR_PASSING_TBL_COLUMNS = [
-    "game_id", 
-    "pfr_game_id", 
-    "season", 
-    "week", 
-    "game_type", 
+    "game_id",
+    "pfr_game_id",
+    "season",
+    "week",
+    "game_type",
     "team",
-    "opponent", 
-    "pfr_player_name", 
-    "pfr_player_id", 
+    "opponent",
+    "pfr_player_name",
+    "pfr_player_id",
     "passing_drops",
-    "passing_drop_pct", 
-    "receiving_drop", 
+    "passing_drop_pct",
+    "receiving_drop",
     "receiving_drop_pct",
-    "passing_bad_throws", 
-    "passing_bad_throw_pct", 
+    "passing_bad_throws",
+    "passing_bad_throw_pct",
     "times_sacked",
-    "times_blitzed", 
-    "times_hurried", 
-    "times_hit", 
+    "times_blitzed",
+    "times_hurried",
+    "times_hit",
     "times_pressured",
-    "times_pressured_pct", 
-    "def_times_blitzed", 
+    "times_pressured_pct",
+    "def_times_blitzed",
     "def_times_hurried",
     "def_times_hitqb",
 ]
@@ -784,20 +807,20 @@ PLAYER_STATS_TBL_COLUMNS = [
 
 RUSHING_TBL_COLUMNS = [
     "game_id",
-    "pfr_game_id", 
-    "season", 
-    "week", 
-    "game_type", 
+    "pfr_game_id",
+    "season",
+    "week",
+    "game_type",
     "team",
-    "opponent", 
-    "pfr_player_name", 
-    "pfr_player_id", 
+    "opponent",
+    "pfr_player_name",
+    "pfr_player_id",
     "carries",
-    "rushing_yards_before_contact", 
+    "rushing_yards_before_contact",
     "rushing_yards_before_contact_avg",
-    "rushing_yards_after_contact", 
+    "rushing_yards_after_contact",
     "rushing_yards_after_contact_avg",
-    "rushing_broken_tackles", 
+    "rushing_broken_tackles",
     "receiving_broken_tackles",
 ]
 
